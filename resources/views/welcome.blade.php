@@ -54,7 +54,7 @@
                         <div class="flex justify-between items-center bg-slate-700/50 p-4 rounded-xl">
                             <div class="flex items-center gap-4">
                                 <span class="text-2xl font-bold text-slate-400">#{{ $index + 1 }}</span>
-                                <span class="font-semibold text-lg">{{ $top->user_id }}</span>
+                                <span class="font-semibold text-lg">{{ $top->line_id }}</span>
                             </div>
                             <span class="text-emerald-400 font-bold text-xl">{{ $top->total_points }} แต้ม</span>
                         </div>
@@ -75,7 +75,7 @@
                         <tbody>
                             @foreach($logs as $log)
                             <tr class="border-b border-slate-700/50 hover:bg-slate-700/30">
-                                <td class="py-3">{{ $log->user_id }}</td>
+                                <td class="py-3">{{ $log->line_id }}</td>
                                 <td class="py-3">
                                     @if($log->trash_type == 'recycle')
                                         <span class="text-blue-400 text-sm border border-blue-500/30 px-2 py-1 rounded bg-blue-500/10">รีไซเคิล</span>

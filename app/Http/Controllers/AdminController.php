@@ -13,18 +13,18 @@ class AdminController extends Controller
     public function index()
     {
         // 🔴 2. ตอนเรียกใช้ ให้พิมพ์แค่ชื่อสั้นๆ แบบนี้ครับ ไม่ต้องมี App\Models นำหน้าแล้ว
-        $totalPoints = TrashLog::sum('points'); 
-        $logs = TrashLog::orderBy('created_at', 'desc')->take(10)->get(); 
-        $rewards = Reward::all(); 
-        
-        $users = LineUser::all(); 
+        $totalPoints = TrashLog::sum('points');
+        $logs = TrashLog::orderBy('created_at', 'desc')->take(10)->get();
+        $rewards = Reward::all();
 
-        foreach($users as $user) {
-            $user->current_points = TrashLog::where('user_id', $user->display_name)->sum('points');
+        $users = LineUser::all();
+
+        foreach ($users as $user) {
+            $user->current_points = TrashLog::where('line_id', $user->display_name)->sum('points');
         }
 
-        $leaderboard = TrashLog::selectRaw('user_id, sum(points) as total_points')
-            ->groupBy('user_id')
+        $leaderboard = TrashLog::selectRaw('line_id, sum(points) as total_points')
+            ->groupBy('line_id')
             ->orderBy('total_points', 'desc')
             ->take(5)
             ->get();
@@ -54,9 +54,9 @@ class AdminController extends Controller
     public function addPoints(Request $request, $id)
     {
         $user = LineUser::find($id);
-        if($user) {
+        if ($user) {
             $log = new TrashLog();
-            $log->user_id = $user->display_name;
+            $log->line_id = $user->display_name;
             $log->trash_type = 'Admin Bonus'; // ใช้คำภาษาอังกฤษสั้นๆ เพื่อความชัวร์
             $log->points = $request->points;
             $log->save();

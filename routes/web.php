@@ -47,10 +47,10 @@ Route::post('/api/line/dashboard', function (Illuminate\Http\Request $request) {
     $name = $request->input('display_name'); // อ้างอิงจากชื่อ หรือ line_id
     
     // 1. แต้มรวม
-    $totalPoints = App\Models\TrashLog::where('user_id', $name)->sum('points');
+    $totalPoints = App\Models\TrashLog::where('line_id', $name)->sum('points');
     
     // 2. ประวัติการทิ้งขยะ (เอา 10 รายการล่าสุด)
-    $history = App\Models\TrashLog::where('user_id', $name)->orderBy('created_at', 'desc')->take(10)->get();
+    $history = App\Models\TrashLog::where('line_id', $name)->orderBy('created_at', 'desc')->take(10)->get();
     
     // 3. ของรางวัลที่ยังมีในสต็อก
     $rewards = App\Models\Reward::where('stock', '>', 0)->get();
@@ -70,7 +70,7 @@ Route::post('/api/line/redeem', function (Illuminate\Http\Request $request) {
     $rewardId = $request->input('reward_id');
 
     $reward = App\Models\Reward::find($rewardId);
-    $totalPoints = App\Models\TrashLog::where('user_id', $name)->sum('points');
+    $totalPoints = App\Models\TrashLog::where('line_id', $name)->sum('points');
 
     if (!$reward || $reward->stock <= 0) {
         return response()->json(['status' => 'error', 'message' => 'ของหมดครับ']);
@@ -84,7 +84,7 @@ Route::post('/api/line/redeem', function (Illuminate\Http\Request $request) {
     $redeemCode = 'BG-' . strtoupper(Str::random(6));
 
     $log = new App\Models\TrashLog();
-    $log->user_id = $name;
+    $log->line_id = $name;
     $log->trash_type = '🎁 แลก: ' . $reward->name;
     $log->points = -($reward->points_required);
     $log->redeem_code = $redeemCode; // ต้องรัน Migration เพิ่มคอลัมน์นี้แล้ว

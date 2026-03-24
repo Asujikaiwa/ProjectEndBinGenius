@@ -1,0 +1,61 @@
+version: '3.8'
+services:
+  # 1. ตู้คอนเทนเนอร์สำหรับ Laravel (PHP)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bingenius-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      - bingenius-network
+
+  # 2. ตู้คอนเทนเนอร์สำหรับ MySQL (Database)
+  db:
+    image: mysql:8.0
+    container_name: bingenius-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: BinGenius     # 🔴 เปลี่ยนชื่อฐานข้อมูลเป็น BinGenius
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: 
+      MYSQL_USER: user
+    ports:
+      - "3307:3306"                 # 🔴 ใช้พอร์ต 3306 (ระวัง: ต้องปิด MySQL ใน XAMPP ก่อนรันนะครับ ไม่งั้นพอร์ตจะชนกัน)
+    networks:
+      - bingenius-network
+
+  # 3. ตู้คอนเทนเนอร์สำหรับ Nginx (Web Server)
+  nginx:
+    image: nginx:alpine
+    container_name: bingenius-nginx
+    restart: unless-stopped
+    ports:
+      - "8001:80"                   # 🔴 เปลี่ยนเป็นพอร์ต 8001 ตามที่คุณไพบูลย์ต้องการ
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d/
+    networks:
+      - bingenius-network
+
+  # 4. ตู้คอนเทนเนอร์สำหรับ Node-RED
+  nodered:
+    image: nodered/node-red:latest
+    container_name: bingenius-nodered
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - node_red_data:/data
+    networks:
+      - bingenius-network
+
+networks:
+  bingenius-network:
+    driver: bridge
+
+volumes:
+  node_red_data:
