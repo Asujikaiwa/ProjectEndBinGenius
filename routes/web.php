@@ -107,7 +107,7 @@ Route::post('/api/trash/detect', function (Illuminate\Http\Request $request) {
     $points = ($trashType == 'recycle') ? 10 : 5;
 
     $log = new App\Models\TrashLog();
-    $log->user_id = $userId;
+    $log->line_id = $userId;
     $log->trash_type = $trashType;
     $log->points = $points;
     $log->save();

@@ -30,6 +30,7 @@ services:
 
   # 3. ตู้คอนเทนเนอร์สำหรับ Nginx (Web Server)
   nginx:
+  
     image: nginx:alpine
     container_name: bingenius-nginx
     restart: unless-stopped
