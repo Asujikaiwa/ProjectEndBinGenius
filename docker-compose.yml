@@ -21,10 +21,10 @@ services:
     environment:
       MYSQL_DATABASE: BinGenius     # 🔴 เปลี่ยนชื่อฐานข้อมูลเป็น BinGenius
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_PASSWORD: 
+      MYSQL_PASSWORD: root
       MYSQL_USER: user
     ports:
-      - "3308:3306"                 # 🔴 ใช้พอร์ต 3306 (ระวัง: ต้องปิด MySQL ใน XAMPP ก่อนรันนะครับ ไม่งั้นพอร์ตจะชนกัน)
+      - "3308:3306"                 # 🔴 ใช้พอร์ต 3306 คุยกันภายใน laravel ส่วน 3308 ไปหา docker
     networks:
       - bingenius-network
 
