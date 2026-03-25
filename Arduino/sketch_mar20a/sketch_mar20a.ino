@@ -5,7 +5,7 @@
 // 1. ตั้งค่า Wi-Fi และ MQTT
 const char* ssid = "ชื่อไวไฟของคุณ";
 const char* password = "รหัสไวไฟ";
-const char* mqtt_server = "192.168.1.xxx"; // IP คอมพิวเตอร์ของคุณที่รัน Mosquitto
+const char* mqtt_server = "192.168.1.4"; // IP คอมพิวเตอร์ของคุณที่รัน Mosquitto
 
 WiFiClient espClient;
 PubSubClient client(espClient);

@@ -24,7 +24,7 @@ services:
       MYSQL_PASSWORD: 
       MYSQL_USER: user
     ports:
-      - "3307:3306"                 # 🔴 ใช้พอร์ต 3306 (ระวัง: ต้องปิด MySQL ใน XAMPP ก่อนรันนะครับ ไม่งั้นพอร์ตจะชนกัน)
+      - "3308:3306"                 # 🔴 ใช้พอร์ต 3306 (ระวัง: ต้องปิด MySQL ใน XAMPP ก่อนรันนะครับ ไม่งั้นพอร์ตจะชนกัน)
     networks:
       - bingenius-network
 
