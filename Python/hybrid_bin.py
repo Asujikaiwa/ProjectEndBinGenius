@@ -5,21 +5,25 @@ import warnings
 warnings.filterwarnings("ignore")
 import google.generativeai as genai
 from inference_sdk import InferenceHTTPClient
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 # ==========================================
 # 🔑 1. ตั้งค่า API Keys 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
 # ==========================================
-ROBOFLOW_MODEL_ID = "projectbingenius/2"
+ROBOFLOW_MODEL_ID = "bingenius-ubkvg/1"
 CLIENT = InferenceHTTPClient(
     api_url="https://serverless.roboflow.com",
-    api_key="R5Ax5YA3aqJtJbYl64CO"  # API Key ของคุณ
+    api_key=ROBOFLOW_API_KEY  # API Key ของคุณ
 )
 
-GEMINI_API_KEY = "AIzaSyDg6dCvQbW36RQdS25-_Y5HkWuDsxBj4o4"
 genai.configure(api_key=GEMINI_API_KEY)
 gemini_model = genai.GenerativeModel('gemini-2.5-flash') 
 
-MQTT_BROKER = "127.0.0.1" 
+MQTT_BROKER = "broker.hivemq.com" 
 MQTT_PORT = 1883
 MQTT_TOPIC = "smartbin/command"
 
@@ -29,6 +33,7 @@ MQTT_TOPIC = "smartbin/command"
 mqtt_client = mqtt.Client()
 try:
     mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    mqtt_client.loop_start()
     print("🌐 เชื่อมต่อ MQTT Broker สำเร็จ!")
 except Exception as e:
     print(f"❌ เชื่อมต่อ MQTT ไม่สำเร็จ: {e}")
@@ -37,12 +42,22 @@ def ask_gemini_for_help(image_path):
     print("🧠 กำลังส่งภาพให้รุ่นพี่ Gemini ช่วยวิเคราะห์...")
     import PIL.Image
     img = PIL.Image.open(image_path)
-    prompt = "ภาพนี้คือขยะประเภทไหน ตอบแค่คำว่า 'recycle' (พลาสติก, แก้ว, กระดาษ, โลหะ) หรือ 'hazardous' (ถ่าน, แบตเตอรี่, หลอดไฟ, ยาหมดอายุ) เท่านั้น ห้ามตอบคำอื่น"
+    
+    # 🔴 ปรับ Prompt ใหม่ให้รู้จักทั้ง 3 คลาส พร้อมอธิบายให้ Gemini เข้าใจว่าแต่ละอันคืออะไร
+    prompt = "ภาพนี้คือขยะประเภทไหน ตอบแค่คำว่า 'recycle_watse' (พลาสติก, แก้ว, กระดาษ, โลหะ , กระป๋อง), 'hazardous_watse' (ถ่าน, แบตเตอรี่, หลอดไฟ, กระป๋องสเปรย์ , อุปกรณ์อิเล็กทรอนิกส์ , คัตเตอร์ , ) หรือ 'notclass' (ขยะทั่วไป, เศษอาหาร, หรือไม่ใช่สองประเภทแรก , มือ , อาหาร , สัตว์ , น้ำ , ใบไม้ , ถุงขยะ , ผลไม้ , ไม้ , ขนม , ทิชชู่ , คน ) เท่านั้น ห้ามตอบคำอื่นหรือใส่เครื่องหมายวรรคตอน"
+    
     try:
         response = gemini_model.generate_content([prompt, img])
         result = response.text.strip().lower()
-        if 'recycle' in result: return 'recycle'
-        elif 'hazardous' in result: return 'hazardous'
+        
+        # เช็คคำตอบจาก Gemini
+        if 'recycle' in result: 
+            return 'recycle_watse'
+        elif 'hazardous' in result: 
+            return 'hazardous_watse'
+        elif 'notclass' in result: 
+            return 'notclass'
+            
         return 'unknown'
     except Exception as e:
         print(f"❌ Gemini Error: {e}")
@@ -58,6 +73,8 @@ print("🤖 ถังขยะอัจฉริยะ Hybrid AI (Manual Detect)
 print("👉 กดปุ่ม 's' ที่คีย์บอร์ดเพื่อสแกนขยะ")
 print("👉 กดปุ่ม 'q' เพื่อปิดระบบ")
 print("========================================")
+
+valid_classes = ['recycle_watse', 'hazardous_watse', 'notclass']
 
 while True:
     ret, frame = cap.read()
@@ -89,11 +106,13 @@ while True:
                 
                 final_trash_type = None
                 
-                # แปลงชื่อคลาสให้ตรงกับระบบของเรา (แก้ปัญหา recycle_waste)
+                # 🔴 แปลงชื่อคลาสให้ตรงกับระบบของเรา 3 คลาส
                 if 'recycle' in raw_class:
-                    final_trash_type = 'recycle'
+                    final_trash_type = 'recycle_watse'
                 elif 'hazardous' in raw_class or 'danger' in raw_class:
-                    final_trash_type = 'hazardous'
+                    final_trash_type = 'hazardous_watse'
+                elif 'notclass' in raw_class:
+                    final_trash_type = 'notclass'
                 
                 # เช็คความมั่นใจ
                 if confidence >= 60 and final_trash_type:
@@ -102,40 +121,42 @@ while True:
                     print("🟥 ไม่ชัวร์ หรือชื่อคลาสไม่ตรง... เรียก Gemini ช่วยดูหน่อย!")
                     final_trash_type = ask_gemini_for_help(image_filename)
                     
-                # ส่งข้อมูลขึ้น MQTT
-                if final_trash_type in ['recycle', 'hazardous']:
+                # 🔴 ส่งข้อมูลขึ้น MQTT (ตรวจสอบทั้ง 3 คลาส)
+                if final_trash_type in valid_classes:
                     print(f"🎯 สรุปผลสุดท้ายคือ: {final_trash_type.upper()}")
                     payload = json.dumps({"trash_type": final_trash_type})
                     mqtt_client.publish(MQTT_TOPIC, payload)
                     print(f"📡 ส่ง '{payload}' เข้า MQTT สำเร็จ!\n")
                 else:
-                    print("❌ วิเคราะห์ไม่สำเร็จ\n")
+                    print(f"❌ วิเคราะห์ไม่สำเร็จ (ผลลัพธ์ที่ได้: {final_trash_type})\n")
             
             # ถ้า Roboflow มองไม่เห็นอะไรเลย ให้ Gemini ช่วย
             else:
                 print("🤷‍♂️ Roboflow มองไม่เห็นอะไรเลย... ส่งให้ Gemini ดูแทน!")
                 final_trash_type = ask_gemini_for_help(image_filename)
                 
-                if final_trash_type in ['recycle', 'hazardous']:
+                # 🔴 ส่งข้อมูลขึ้น MQTT (ตรวจสอบทั้ง 3 คลาส)
+                if final_trash_type in valid_classes:
                     print(f"🎯 สรุปผลสุดท้ายคือ: {final_trash_type.upper()}")
                     payload = json.dumps({"trash_type": final_trash_type})
                     mqtt_client.publish(MQTT_TOPIC, payload)
                     print(f"📡 ส่ง '{payload}' เข้า MQTT สำเร็จ!\n")
                 else:
-                    print("❌ วิเคราะห์ไม่สำเร็จ\n")
+                    print(f"❌ วิเคราะห์ไม่สำเร็จ (ผลลัพธ์ที่ได้: {final_trash_type})\n")
                     
         except Exception as e:
             print(f"⚠️ Error: {e}")
             print("🔄 สลับไปใช้ Gemini เป็นตัวสำรองทันที!")
             final_trash_type = ask_gemini_for_help(image_filename)
             
-            if final_trash_type in ['recycle', 'hazardous']:
+            # 🔴 ส่งข้อมูลขึ้น MQTT (ตรวจสอบทั้ง 3 คลาส)
+            if final_trash_type in valid_classes:
                 print(f"🎯 สรุปผลสุดท้ายคือ: {final_trash_type.upper()}")
                 payload = json.dumps({"trash_type": final_trash_type})
                 mqtt_client.publish(MQTT_TOPIC, payload)
                 print(f"📡 ส่ง '{payload}' เข้า MQTT สำเร็จ!\n")
             else:
-                print("❌ วิเคราะห์ไม่สำเร็จ\n")
+                print(f"❌ วิเคราะห์ไม่สำเร็จ (ผลลัพธ์ที่ได้: {final_trash_type})\n")
 
 cap.release()
 cv2.destroyAllWindows()

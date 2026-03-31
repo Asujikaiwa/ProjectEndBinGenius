@@ -30,7 +30,6 @@ services:
 
   # 3. ตู้คอนเทนเนอร์สำหรับ Nginx (Web Server)
   nginx:
-  
     image: nginx:alpine
     container_name: bingenius-nginx
     restart: unless-stopped
@@ -49,11 +48,28 @@ services:
     restart: unless-stopped
     ports:
       - "1880:1880"
+      - "1883:1883"   # 🔴 ต้องเพิ่มบรรทัดนี้ เพื่อเปิดทางให้ ESP8266 วิ่งเข้ามาได้
+ 
     volumes:
       - node_red_data:/data
+    
     networks:
       - bingenius-network
 
+    # 5. ตู้คอนเทนเนอร์สำหรับจัดการ Database (phpMyAdmin)
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: bingenius-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - bingenius-network
+      
 networks:
   bingenius-network:
     driver: bridge
