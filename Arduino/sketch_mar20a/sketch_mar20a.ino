@@ -131,6 +131,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
     
     Serial.println(">> เสร็จสิ้น");
   }
+  else if (message == "3") {
+    Serial.println("⚪ NOTCLASS: อยู่เฉยๆ ไม่เปิดรับ");
+    myServo.write(posNeutral); // มั่นใจว่ามอเตอร์อยู่ที่ตำแหน่งปิด
+  }
 }
 
 void reconnect() {
